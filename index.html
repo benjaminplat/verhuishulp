@@ -86,6 +86,26 @@
   .badge.sleutel{background:#fef9c3;color:#a16207;}
   .badge.verhuis{background:var(--blauw-l);color:#1d4ed8;}
   .badge.vol{background:#fee2e2;color:#b91c1c;}
+  .badge.fase1{background:var(--blauw-l);color:#1d4ed8;}
+  .badge.fase2{background:#fef9c3;color:#a16207;}
+  .badge.fase3{background:#f1f5f9;color:var(--grijs);}
+  .badge.winkel{background:var(--groen-l);color:#166534;}
+  .badge.gekocht{background:var(--groen-l);color:#166534;}
+  .badge.nogkopen{background:#fee2e2;color:#b91c1c;}
+
+  .filterrij{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 4px;}
+  .chip{
+    padding:8px 14px;border-radius:999px;border:2px solid #e2e8f0;background:#fff;
+    font-family:inherit;font-weight:800;font-size:.85rem;color:var(--navy);cursor:pointer;
+    transition:all .12s ease;
+  }
+  .chip.actief{background:var(--oranje);border-color:var(--oranje);color:#fff;}
+
+  .klus-groep h3{margin:0 0 6px;}
+  .klus-item{padding:10px 0;border-top:1px solid #f1f5f9;}
+  .klus-item:first-child{border-top:none;}
+  .klus-titel{font-weight:800;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .klus-meta{color:var(--grijs);font-size:.88rem;margin-top:3px;}
 
   .dagdelen{display:flex;gap:8px;margin-top:12px;}
   .dagdeel{
@@ -240,6 +260,60 @@ const HANDEN = [
   { id:"ll", label:"2 linkerhanden", emoji:"🤗" }
 ];
 const AVATAR_KLEUREN = ["#f97316","#3b82f6","#16a34a","#8b5cf6","#ec4899","#0d9488","#eab308","#ef4444"];
+
+/* klussenlijst per ruimte, incl. shoppinglist/benodigdheden en fase (1/2/3) */
+const KLUSSEN = [
+  { ruimte:"Keuken", taak:"Keukenkastjes demonteren", kleur:"—", spullen:"—", gekocht:false, winkel:"", fase:1 },
+  { ruimte:"Keuken", taak:"Keuken wrappen", kleur:"Bruin/wit", spullen:"Wrapfolie 9 m² (on hold)", gekocht:false, winkel:"", fase:1 },
+  { ruimte:"Keuken", taak:"Plank koelkastdeur maken", kleur:"—", spullen:"Plank voor deur", gekocht:false, winkel:"", fase:1 },
+  { ruimte:"Keuken", taak:"Plank ophangen", kleur:"—", spullen:"Plank + bevestigingsmateriaal", gekocht:false, winkel:"", fase:1 },
+  { ruimte:"Keuken", taak:"Achterwand schilderen", kleur:"Toasted Pecan", spullen:"10 cm muurroller, 25-30 mm kwast, verfbak + inzetbak", gekocht:true, winkel:"Gamma", fase:1 },
+  { ruimte:"Keuken", taak:"Tegelen", kleur:"—", spullen:"Tegeltjes + tegellijm/voegmateriaal", gekocht:false, winkel:"", fase:1 },
+
+  { ruimte:"Woonkamer", taak:"Trap schuren", kleur:"—", spullen:"Schuurpapier 150 + 180, afplaktape", gekocht:true, winkel:"Gamma", fase:1 },
+  { ruimte:"Woonkamer", taak:"Trap primeren", kleur:"Wit", spullen:"10 cm viltroller, 70 mm + 30 mm kwast, klein verfbakje + inzetbak", gekocht:true, winkel:"Gamma", fase:1 },
+  { ruimte:"Woonkamer", taak:"Trap schilderen", kleur:"Copperhead", spullen:"10 cm viltroller, 70 mm + 30 mm kwast, klein verfbakje + inzetbak", gekocht:true, winkel:"Gamma", fase:1 },
+  { ruimte:"Woonkamer", taak:"Leuning/reling/balk schilderen", kleur:"Copperhead", spullen:"Zelfde trapmateriaal", gekocht:true, winkel:"Gamma", fase:1 },
+  { ruimte:"Woonkamer", taak:"Muur schilderen", kleur:"Toasted Pecan en wit", spullen:"25 cm muurroller, 10 cm roller, 50/75 mm kwast, verfbak + inzetbak", gekocht:true, winkel:"Gamma", fase:1 },
+
+  { ruimte:"Slaapkamer beneden", taak:"Muren schilderen", kleur:"Olive Leaf", spullen:"25 cm muurroller, 10 cm roller, 50/75 mm kwast, verfbak + inzetbak", gekocht:false, winkel:"Karwei", fase:1 },
+  { ruimte:"Slaapkamer beneden", taak:"Plafond schilderen", kleur:"Olive Leaf", spullen:"25 cm muurroller, 75 mm kwast, telescoopsteel", gekocht:false, winkel:"Karwei", fase:1 },
+  { ruimte:"Slaapkamer beneden", taak:"Primer indien nodig", kleur:"Wit", spullen:"Witte dekkende primer + aparte roller", gekocht:true, winkel:"Gamma", fase:1 },
+  { ruimte:"Slaapkamer beneden", taak:"Sierlijsten maken", kleur:"Nog meten", spullen:"Sierlijsten, montage-/afwerkingsmateriaal, schuurpapier 180", gekocht:false, winkel:"", fase:1 },
+  { ruimte:"Slaapkamer beneden", taak:"Kast kopen", kleur:"—", spullen:"Kast voor beddengoed", gekocht:false, winkel:"", fase:1 },
+
+  { ruimte:"WC", taak:"Plaktegels aanbrengen", kleur:"—", spullen:"Plaktegels + ontvetter", gekocht:false, winkel:"", fase:2 },
+  { ruimte:"WC", taak:"Muren schilderen", kleur:"N.t.b.", spullen:"10 cm roller, 25-30 mm kwast, klein/groot verfbakje", gekocht:false, winkel:"", fase:2 },
+
+  { ruimte:"Badkamer", taak:"Wasmachine", kleur:"—", spullen:"Wasmachine kopen", gekocht:false, winkel:"Coolblue", fase:1 },
+  { ruimte:"Badkamer", taak:"Mogelijke douchecabine", kleur:"—", spullen:"Douchecabine", gekocht:false, winkel:"", fase:2 },
+  { ruimte:"Badkamer", taak:"Mogelijke wastafel", kleur:"—", spullen:"Wastafel", gekocht:false, winkel:"", fase:2 },
+  { ruimte:"Badkamer", taak:"Tegels verven", kleur:"—", spullen:"Later bepalen", gekocht:false, winkel:"", fase:2 },
+  { ruimte:"Badkamer", taak:"Kast voor wasmachine", kleur:"—", spullen:"Kast", gekocht:false, winkel:"", fase:2 },
+
+  { ruimte:"Hal", taak:"Verven óf behangen", kleur:"N.t.b.", spullen:"25 cm roller + kwasten of behang", gekocht:false, winkel:"", fase:1 },
+  { ruimte:"Hal", taak:"Schoenenkast", kleur:"—", spullen:"Schoenenkast", gekocht:false, winkel:"", fase:1 },
+
+  { ruimte:"Werkkamer", taak:"Muren wit schilderen", kleur:"Wit", spullen:"25 cm roller, 10 cm roller, 75/50 mm kwasten", gekocht:true, winkel:"Gamma", fase:1 },
+  { ruimte:"Werkkamer", taak:"Primeren", kleur:"Wit", spullen:"Witte dekkende primer + roller", gekocht:true, winkel:"Gamma", fase:1 },
+  { ruimte:"Werkkamer", taak:"Bureau in elkaar zetten", kleur:"—", spullen:"Bureau", gekocht:false, winkel:"", fase:1 },
+  { ruimte:"Werkkamer", taak:"Bureau setup", kleur:"—", spullen:"Bureau-accessoires", gekocht:false, winkel:"", fase:1 },
+  { ruimte:"Werkkamer", taak:"Fauteuil", kleur:"—", spullen:"Fauteuil", gekocht:false, winkel:"", fase:1 },
+  { ruimte:"Werkkamer", taak:"Kast", kleur:"—", spullen:"Kast", gekocht:false, winkel:"", fase:1 },
+
+  { ruimte:"Logeerkamer", taak:"Behang aanbrengen", kleur:"N.t.b.", spullen:"Behang + behangbenodigdheden", gekocht:false, winkel:"Karwei", fase:1 },
+  { ruimte:"Logeerkamer", taak:"Muren schilderen", kleur:"N.t.b.", spullen:"25 cm roller, 10 cm roller, 50/75 mm kwast", gekocht:false, winkel:"Karwei", fase:1 },
+  { ruimte:"Logeerkamer", taak:"Kast in elkaar zetten", kleur:"—", spullen:"Bestaande kast", gekocht:false, winkel:"", fase:1 },
+  { ruimte:"Logeerkamer", taak:"Kastdeuren plaatsen", kleur:"—", spullen:"PAX-deuren", gekocht:false, winkel:"", fase:2 },
+  { ruimte:"Logeerkamer", taak:"Bed neerzetten", kleur:"—", spullen:"Bestaand bed", gekocht:false, winkel:"", fase:1 },
+
+  { ruimte:"Overloop", taak:"Planken maken", kleur:"—", spullen:"Planken + bevestigingsmateriaal", gekocht:false, winkel:"", fase:1 },
+
+  { ruimte:"Buiten", taak:"Huis schilderen", kleur:"N.t.b.", spullen:"Op termijn", gekocht:false, winkel:"", fase:3 },
+  { ruimte:"Buiten", taak:"Terras vervangen", kleur:"—", spullen:"Op termijn", gekocht:false, winkel:"", fase:3 },
+  { ruimte:"Buiten", taak:"Steiger beitsen", kleur:"—", spullen:"Beits + later brede beitskwast", gekocht:true, winkel:"Gamma", fase:1 }
+];
+const KLUSSEN_RUIMTES = [...new Set(KLUSSEN.map(k => k.ruimte))];
 
 /* afbeeldingen (worden bij het bouwen gevuld met base64-data) */
 const IMG = {
@@ -465,7 +539,10 @@ const S = {
   selectie: {},        // { iso: Set(optie-ids) }
   volMeldingen: [],    // dagen die vol bleken bij het opslaan
   scherm: "home",
-  laadFout: null
+  laadFout: null,
+  klussenView: "ruimte",   // "ruimte" of "shop"
+  klussenFase: "alle",     // "alle", 1, 2 of 3
+  klussenRuimte: "alle"
 };
 
 async function vernieuwData(stil){
@@ -975,11 +1052,72 @@ function tekenPlattegrond(){
 /* --- klussen (in ontwikkeling) --- */
 function tekenKlussen(){
   app.append(demoBanner(),
-    el("div",{class:"kaart placeholder scherm"},
-      el("span",{class:"emoji"},"🚧"),
-      el("h2",null,"Klussenlijst"),
-      el("span",{class:"badge sleutel", style:"font-size:.9rem;"},"🚧 In ontwikkeling"),
-      el("p",{class:"sub", style:"margin-top:14px;"},"Hier komt per ruimte een lijst met werkzaamheden, zodat je weet wat er te doen is. Verven, sjouwen, schroeven: voor ieder wat wils. Nog even geduld!")));
+    el("h2",{class:"center scherm"},"🛠️ Klussenlijst"),
+    el("div",{class:"filterrij scherm"},
+      el("button",{class:"chip" + (S.klussenView === "ruimte" ? " actief" : ""), onclick:() => { S.klussenView = "ruimte"; toon("klussen"); }},"🏠 Per ruimte"),
+      el("button",{class:"chip" + (S.klussenView === "shop" ? " actief" : ""), onclick:() => { S.klussenView = "shop"; toon("klussen"); }},"🛒 Shoppinglijst")
+    ));
+  if(S.klussenView === "shop") tekenKlussenShop();
+  else tekenKlussenRuimte();
+}
+
+function tekenKlussenRuimte(){
+  app.append(
+    el("div",{class:"filterrij scherm"},
+      el("button",{class:"chip" + (S.klussenFase === "alle" ? " actief" : ""), onclick:() => { S.klussenFase = "alle"; toon("klussen"); }},"Alle fases"),
+      ...[1,2,3].map(f => el("button",{class:"chip" + (S.klussenFase === f ? " actief" : ""), onclick:() => { S.klussenFase = f; toon("klussen"); }},"Fase " + f))
+    ),
+    el("div",{class:"filterrij scherm"},
+      el("button",{class:"chip" + (S.klussenRuimte === "alle" ? " actief" : ""), onclick:() => { S.klussenRuimte = "alle"; toon("klussen"); }},"Alle ruimtes"),
+      ...KLUSSEN_RUIMTES.map(r => el("button",{class:"chip" + (S.klussenRuimte === r ? " actief" : ""), onclick:() => { S.klussenRuimte = r; toon("klussen"); }}, r))
+    ));
+
+  const gefilterd = KLUSSEN.filter(k =>
+    (S.klussenFase === "alle" || k.fase === S.klussenFase) &&
+    (S.klussenRuimte === "alle" || k.ruimte === S.klussenRuimte));
+
+  if(!gefilterd.length){
+    app.append(el("div",{class:"kaart center scherm"}, el("p",{class:"sub"},"Geen klussen binnen dit filter.")));
+    return;
+  }
+
+  for(const ruimte of KLUSSEN_RUIMTES){
+    const taken = gefilterd.filter(k => k.ruimte === ruimte);
+    if(!taken.length) continue;
+    app.append(el("div",{class:"kaart klus-groep scherm"},
+      el("h3",null, ruimte + " (" + taken.length + ")"),
+      ...taken.map(k => el("div",{class:"klus-item"},
+        el("div",{class:"klus-titel"}, k.taak,
+          el("span",{class:"badge fase" + k.fase}, "Fase " + k.fase),
+          k.winkel ? el("span",{class:"badge winkel"}, k.winkel) : null,
+          k.spullen !== "—" ? (k.gekocht
+            ? el("span",{class:"badge gekocht"},"✅ gekocht")
+            : el("span",{class:"badge nogkopen"},"🛒 nog kopen")) : null),
+        el("div",{class:"klus-meta"},
+          (k.kleur !== "—" ? "🎨 " + k.kleur + " · " : "") + k.spullen))
+      )));
+  }
+}
+
+function tekenKlussenShop(){
+  const negeren = ["—","Op termijn","Later bepalen"];
+  const teKopen = KLUSSEN.filter(k => !k.gekocht && !negeren.includes(k.spullen));
+  const winkels = [...new Set(teKopen.map(k => k.winkel || "Nog te bepalen"))];
+
+  app.append(el("p",{class:"sub scherm"}, teKopen.length
+    ? "Nog " + teKopen.length + " item(s) te kopen."
+    : "Alles is al gekocht! 🎉"));
+
+  for(const winkel of winkels){
+    const items = teKopen.filter(k => (k.winkel || "Nog te bepalen") === winkel);
+    app.append(el("div",{class:"kaart klus-groep scherm"},
+      el("h3",null, (winkel === "Nog te bepalen" ? "🛍️ " : "🏬 ") + winkel + " (" + items.length + ")"),
+      ...items.map(k => el("div",{class:"klus-item"},
+        el("div",{class:"klus-titel"}, k.spullen,
+          el("span",{class:"badge fase" + k.fase}, "Fase " + k.fase)),
+        el("div",{class:"klus-meta"}, k.ruimte + " · " + k.taak))
+      )));
+  }
 }
 
 /* --- Ilse's inspiratie: voor & na --- */
