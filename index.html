@@ -101,6 +101,11 @@
   }
   .chip.actief{background:var(--oranje);border-color:var(--oranje);color:#fff;}
 
+  .klus-filters{display:flex;gap:10px;margin:2px 0 4px;}
+  .klus-filters select{
+    flex:1;min-width:0;padding:11px 12px;font-size:.95rem;font-weight:700;font-family:inherit;
+    border:2.5px solid #e2e8f0;border-radius:14px;background:#fff;color:var(--navy);
+  }
   .klus-groep h3{margin:0 0 6px;}
   .klus-item{padding:10px 0;border-top:1px solid #f1f5f9;}
   .klus-item:first-child{border-top:none;}
@@ -1062,14 +1067,15 @@ function tekenKlussen(){
 }
 
 function tekenKlussenRuimte(){
+  const faseOpties = [["alle","Alle fases"],[1,"Fase 1"],[2,"Fase 2"],[3,"Fase 3"]];
+  const ruimteOpties = [["alle","Alle ruimtes"], ...KLUSSEN_RUIMTES.map(r => [r,r])];
+
   app.append(
-    el("div",{class:"filterrij scherm"},
-      el("button",{class:"chip" + (S.klussenFase === "alle" ? " actief" : ""), onclick:() => { S.klussenFase = "alle"; toon("klussen"); }},"Alle fases"),
-      ...[1,2,3].map(f => el("button",{class:"chip" + (S.klussenFase === f ? " actief" : ""), onclick:() => { S.klussenFase = f; toon("klussen"); }},"Fase " + f))
-    ),
-    el("div",{class:"filterrij scherm"},
-      el("button",{class:"chip" + (S.klussenRuimte === "alle" ? " actief" : ""), onclick:() => { S.klussenRuimte = "alle"; toon("klussen"); }},"Alle ruimtes"),
-      ...KLUSSEN_RUIMTES.map(r => el("button",{class:"chip" + (S.klussenRuimte === r ? " actief" : ""), onclick:() => { S.klussenRuimte = r; toon("klussen"); }}, r))
+    el("div",{class:"klus-filters scherm"},
+      el("select",{onchange: e => { S.klussenFase = e.target.value === "alle" ? "alle" : Number(e.target.value); toon("klussen"); }},
+        ...faseOpties.map(([w,label]) => el("option",{value:String(w), selected: String(w) === String(S.klussenFase) ? "" : null}, label))),
+      el("select",{onchange: e => { S.klussenRuimte = e.target.value; toon("klussen"); }},
+        ...ruimteOpties.map(([w,label]) => el("option",{value:String(w), selected: String(w) === String(S.klussenRuimte) ? "" : null}, label)))
     ));
 
   const gefilterd = KLUSSEN.filter(k =>
