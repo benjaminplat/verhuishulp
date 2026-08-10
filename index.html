@@ -388,12 +388,23 @@ function startData(){
 /* Providers: jb = jsonblob.com, ec = json.extendsclass.com, demo = lokaal. */
 const Opslag = {
   token: null,
+  pointerModus: false,   // true als het token via current.json wordt gevonden i.p.v. een gedeelde link
 
   leesTokenUitUrl(){
     const h = (location.hash || "").replace(/^#/, "");
     const q = new URLSearchParams(h.includes("=") ? h : "");
     const p = new URLSearchParams(location.search);
     return q.get("db") || p.get("db") || null;
+  },
+
+  /* current.json wordt periodiek door een GitHub Action bijgewerkt (opslag-rotatie tegen jsonblob's 24u-vervaltijd) */
+  async verversToken(){
+    try{
+      const r = await fetch("current.json", { cache:"no-store" });
+      if(!r.ok) return;
+      const j = await r.json();
+      if(j && j.token) this.token = j.token;
+    }catch(e){ /* pointer nog niet beschikbaar, geen probleem */ }
   },
 
   async maakNieuw(data){
@@ -437,9 +448,12 @@ const Opslag = {
 
   async lees(){
     if(this.token === "demo") return JSON.parse(JSON.stringify(DemoOpslag.data));
+    if(this.pointerModus) await this.verversToken();
     const r = await fetch(this._url(), { headers:{ "Accept":"application/json" }, cache:"no-store" });
     if(!r.ok) throw new Error("Ophalen mislukt (" + r.status + ")");
-    return r.json();
+    const data = await r.json();
+    this._bewaarBackup(data);
+    return data;
   },
 
   async schrijf(data){
@@ -450,6 +464,18 @@ const Opslag = {
       body: JSON.stringify(data)
     });
     if(!r.ok) throw new Error("Opslaan mislukt (" + r.status + ")");
+    this._bewaarBackup(data);
+  },
+
+  /* vangnet: lokale kopie van de laatst geziene stand, voor als de externe opslag ooit weer verdwijnt */
+  _bewaarBackup(data){
+    try{ bewaarLokaal.set("vh_backup_" + this.token, JSON.stringify(data)); }catch(e){}
+  },
+  leesBackup(){
+    try{
+      const raw = bewaarLokaal.get("vh_backup_" + this.token);
+      return raw ? JSON.parse(raw) : null;
+    }catch(e){ return null; }
   }
 };
 const DemoOpslag = { data: startData() };
@@ -555,8 +581,14 @@ async function vernieuwData(stil){
     S.data = await Opslag.lees();
     if(!S.data || typeof S.data !== "object" || !S.data.signups) S.data = startData();
     S.laadFout = null;
+    return true;
   }catch(e){
     if(!stil) S.laadFout = e.message || String(e);
+    if(!S.data){
+      const backup = Opslag.leesBackup();
+      if(backup) S.data = backup;
+    }
+    return false;
   }
 }
 
@@ -892,8 +924,9 @@ async function bewaarAanmelding(){
   knop.disabled = true; leeg(knop); knop.append(el("span",{class:"spinner"}), " Opslaan…");
   try{
     // vlak voor het opslaan de nieuwste stand ophalen, limieten controleren en samenvoegen
-    await vernieuwData(true);
-    const data = S.data || startData();
+    const vers = await vernieuwData(true);
+    if(!vers) throw new Error("Kon de laatste stand niet ophalen. Probeer het nog een keer.");
+    const data = S.data;
     S.volMeldingen = [];
     const days = {};
     for(const [iso,set] of Object.entries(S.selectie)){
@@ -1167,7 +1200,11 @@ async function start(){
   const hash = (location.hash || "").replace(/^#/,"");
   if(hash === "demo"){ Opslag.token = "demo"; start(); return; }
   if(token){ Opslag.token = token; start(); return; }
-  toon("setup");
+  Opslag.pointerModus = true;
+  Opslag.verversToken().then(() => {
+    if(Opslag.token) start();
+    else toon("setup");
+  });
 })();
 </script>
 </body>

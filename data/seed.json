@@ -1,0 +1,14 @@
+{
+  "meta": {"titel": "Verhuizing Groningen → Lemmer", "versie": 2},
+  "signups": {
+    "berend plat": {"name": "Berend Plat", "days": {
+      "2026-08-20": ["ochtend", "middag"],
+      "2026-08-21": ["ochtend", "middag"],
+      "2026-08-23": ["groningen", "lemmer"]
+    }},
+    "benjamin": {"name": "Benjamin", "days": {"2026-08-23": ["groningen", "lemmer"]}},
+    "ilse": {"name": "Ilse", "days": {"2026-08-23": ["groningen", "lemmer"]}},
+    "daan": {"name": "Daan", "days": {"2026-08-23": ["groningen"]}},
+    "nina": {"name": "Nina", "days": {"2026-08-23": ["groningen"]}}
+  }
+}
