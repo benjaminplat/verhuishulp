@@ -631,6 +631,7 @@ function toon(scherm){
     extra: tekenExtra,
     klaar: tekenKlaar,
     overzicht: tekenOverzicht,
+    team: tekenTeam,
     plattegrond: tekenPlattegrond,
     klussen: tekenKlussen,
     inspiratie: tekenInspiratie
@@ -641,7 +642,8 @@ function tekenNav(){
   leeg(nav);
   const items = [
     { id:"home",        emoji:"🙋", label:"Aanmelden", schermen:["home","naam","beschikbaar","extra","klaar"] },
-    { id:"overzicht",   emoji:"📅", label:"Wie komt?",  schermen:["overzicht"] },
+    { id:"overzicht",   emoji:"📅", label:"Agenda",     schermen:["overzicht"] },
+    { id:"team",        emoji:"🧰", label:"Het team",   schermen:["team"] },
     { id:"plattegrond", emoji:"🏠", label:"Plattegrond",schermen:["plattegrond"] },
     { id:"klussen",     emoji:"🛠️", label:"Klussen",    schermen:["klussen"] },
     { id:"inspiratie",  emoji:"✨", label:"Inspiratie", schermen:["inspiratie"] }
@@ -1042,26 +1044,51 @@ function tekenOverzicht(){
       }
       houder.append(kaart);
     }
-    // team: handen, specialiteiten & gereedschap
+  }
+}
+
+/* --- team --- */
+let teamTimer = null;
+function tekenTeam(){
+  clearInterval(teamTimer);
+  app.append(demoBanner(), el("h2",{class:"center scherm"},"🧰 Het team: specialiteiten & gereedschap"));
+  const houder = el("div",{class:"scherm", id:"teamHouder"});
+  app.append(houder,
+    el("div",{class:"center scherm"},
+      el("button",{class:"btn rustig", onclick: async () => { await vernieuwData(); vulTeam(); }},"🔄 Ververs"),
+      el("div",null, el("button",{class:"linkje", onclick: () => toon(S.naam ? "beschikbaar" : "naam")},
+        S.naam ? "Mijn aanmelding aanpassen" : "Ik wil ook helpen!"))));
+  vulTeam();
+  teamTimer = setInterval(async () => {
+    if(S.scherm !== "team"){ clearInterval(teamTimer); return; }
+    await vernieuwData(true); vulTeam();
+  }, 30000);
+
+  function vulTeam(){
+    const houder = document.getElementById("teamHouder");
+    if(!houder) return;
+    leeg(houder);
+    if(S.laadFout) houder.append(el("div",{class:"melding fout"},"⚠️ " + S.laadFout));
     const leden = Object.values((S.data && S.data.signups) || {})
       .slice().sort((a,b) => a.name.localeCompare(b.name,"nl"));
-    if(leden.length){
-      const kaart = el("div",{class:"kaart"});
-      kaart.append(el("h3",null,"🧰 Het team: specialiteiten & gereedschap"));
-      for(const lid of leden){
-        const hand = HANDEN.find(h => h.id === lid.handen);
-        const av = el("span",{class:"avatar", style:"width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:.72rem;font-weight:800;"}, initialen(lid.name));
-        av.style.background = avatarKleur(lid.name);
-        const blok = el("div",{class:"team-lid"},
-          el("div",{class:"team-kop"}, av, lid.name, hand ? el("span",{class:"dd", style:"color:var(--grijs);font-size:.85rem;font-weight:700;"}, hand.emoji + " " + hand.label) : null));
-        const details = [];
-        if(lid.specialiteit) details.push("⭐ " + lid.specialiteit);
-        if(lid.gereedschap) details.push("🛠️ " + lid.gereedschap);
-        if(details.length) blok.append(el("div",{class:"team-detail"}, details.join("   ·   ")));
-        kaart.append(blok);
-      }
-      houder.append(kaart);
+    if(!leden.length){
+      houder.append(el("p",{class:"niemand", style:"margin:8px 0 0;"},"Nog niemand aangemeld."));
+      return;
     }
+    const kaart = el("div",{class:"kaart"});
+    for(const lid of leden){
+      const hand = HANDEN.find(h => h.id === lid.handen);
+      const av = el("span",{class:"avatar", style:"width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:.72rem;font-weight:800;"}, initialen(lid.name));
+      av.style.background = avatarKleur(lid.name);
+      const blok = el("div",{class:"team-lid"},
+        el("div",{class:"team-kop"}, av, lid.name, hand ? el("span",{class:"dd", style:"color:var(--grijs);font-size:.85rem;font-weight:700;"}, hand.emoji + " " + hand.label) : null));
+      const details = [];
+      if(lid.specialiteit) details.push("⭐ " + lid.specialiteit);
+      if(lid.gereedschap) details.push("🛠️ " + lid.gereedschap);
+      if(details.length) blok.append(el("div",{class:"team-detail"}, details.join("   ·   ")));
+      kaart.append(blok);
+    }
+    houder.append(kaart);
   }
 }
 
