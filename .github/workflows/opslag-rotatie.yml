@@ -43,13 +43,22 @@ jobs:
       - name: Maak een verse jsonblob aan met die data
         run: |
           set -e
-          curl -s -D headers.txt -o response.json -X POST "https://jsonblob.com/api/jsonBlob" \
-            -H "Content-Type: application/json" -H "Accept: application/json" \
-            --data-binary @payload.json
-          LOCATION=$(grep -i '^Location:' headers.txt | sed -E 's/[Ll]ocation: *//' | tr -d '\r')
-          NIEUW_ID=$(basename "$LOCATION")
+          POGINGEN=3
+          NIEUW_ID=""
+          for i in $(seq 1 "$POGINGEN"); do
+            curl -s -D headers.txt -o response.json -X POST "https://jsonblob.com/api/jsonBlob" \
+              -H "Content-Type: application/json" -H "Accept: application/json" \
+              --data-binary @payload.json
+            LOCATION=$(grep -i '^Location:' headers.txt | sed -E 's/[Ll]ocation: *//' | tr -d '\r')
+            NIEUW_ID=$(basename "$LOCATION")
+            if [ -n "$NIEUW_ID" ]; then
+              break
+            fi
+            echo "Poging $i/$POGINGEN om een nieuwe jsonblob aan te maken is mislukt, response:" && cat response.json
+            if [ "$i" -lt "$POGINGEN" ]; then sleep 5; fi
+          done
           if [ -z "$NIEUW_ID" ]; then
-            echo "Aanmaken van nieuwe jsonblob is mislukt, response:" && cat response.json && exit 1
+            echo "Aanmaken van nieuwe jsonblob is definitief mislukt na $POGINGEN pogingen." && exit 1
           fi
           printf '{"token":"jb_%s","bijgewerkt":"%s"}\n' "$NIEUW_ID" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > current.json
           mkdir -p data data/snapshots

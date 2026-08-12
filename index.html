@@ -386,6 +386,25 @@ function startData(){
 
 /* ---------- opslag (gratis, zonder account) ---------- */
 /* Providers: jb = jsonblob.com, ec = json.extendsclass.com, demo = lokaal. */
+
+/* jsonblob.com hikt af en toe kort (netwerkfout of 5xx); probeer daarom een paar keer
+   opnieuw voordat we de gebruiker een foutmelding tonen. */
+async function fetchMetHerhaling(url, opties, maxPogingen = 3, wachtMs = 700){
+  let laatsteFout;
+  for(let poging = 1; poging <= maxPogingen; poging++){
+    try{
+      const r = await fetch(url, opties);
+      if(r.ok || poging === maxPogingen) return r;
+      laatsteFout = new Error("HTTP " + r.status);
+    }catch(e){
+      laatsteFout = e;
+      if(poging === maxPogingen) throw e;
+    }
+    await new Promise(res => setTimeout(res, wachtMs * poging));
+  }
+  throw laatsteFout;
+}
+
 const Opslag = {
   token: null,
   pointerModus: false,   // true als het token via current.json wordt gevonden i.p.v. een gedeelde link
@@ -409,7 +428,7 @@ const Opslag = {
 
   async maakNieuw(data){
     try{
-      const r = await fetch("https://jsonblob.com/api/jsonBlob", {
+      const r = await fetchMetHerhaling("https://jsonblob.com/api/jsonBlob", {
         method:"POST",
         headers:{ "Content-Type":"application/json", "Accept":"application/json" },
         body: JSON.stringify(data)
@@ -423,7 +442,7 @@ const Opslag = {
       }
     }catch(e){ /* volgende provider */ }
     try{
-      const r = await fetch("https://json.extendsclass.com/bin", {
+      const r = await fetchMetHerhaling("https://json.extendsclass.com/bin", {
         method:"POST",
         headers:{ "Content-Type":"application/json" },
         body: JSON.stringify(data)
@@ -449,7 +468,7 @@ const Opslag = {
   async lees(){
     if(this.token === "demo") return JSON.parse(JSON.stringify(DemoOpslag.data));
     if(this.pointerModus) await this.verversToken();
-    const r = await fetch(this._url(), { headers:{ "Accept":"application/json" }, cache:"no-store" });
+    const r = await fetchMetHerhaling(this._url(), { headers:{ "Accept":"application/json" }, cache:"no-store" });
     if(!r.ok) throw new Error("Ophalen mislukt (" + r.status + ")");
     const data = await r.json();
     this._bewaarBackup(data);
@@ -458,7 +477,7 @@ const Opslag = {
 
   async schrijf(data){
     if(this.token === "demo"){ DemoOpslag.data = JSON.parse(JSON.stringify(data)); return; }
-    const r = await fetch(this._url(), {
+    const r = await fetchMetHerhaling(this._url(), {
       method:"PUT",
       headers:{ "Content-Type":"application/json" },
       body: JSON.stringify(data)
