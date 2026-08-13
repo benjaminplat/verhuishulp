@@ -1,0 +1,43 @@
+name: Opslag-backup
+
+# Pure backup: leest de huidige data uit de Cloudflare KV-opslag en committeert
+# 'm in de repo. Geen rotatie, geen token-aanmaak — alleen een vangnet.
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Haal de huidige data op uit Cloudflare KV
+        run: |
+          set -e
+          TOKEN=$(jq -r '.token // ""' current.json)
+          ID=${TOKEN#cw_}
+          if [ -z "$ID" ]; then
+            echo "Geen geldig cw_-token gevonden in current.json." && exit 1
+          fi
+          HTTP=$(curl -s -o payload.json -w "%{http_code}" "https://verhuishulp-opslag.benjaminplat.workers.dev/blob/$ID" -H "Accept: application/json")
+          if [ "$HTTP" != "200" ]; then
+            echo "Ophalen mislukt (HTTP $HTTP), response:" && cat payload.json && exit 1
+          fi
+
+      - name: Commit en push (alleen als er iets veranderd is)
+        run: |
+          mkdir -p data data/snapshots
+          if [ ! -f data/backup.json ] || ! diff -q payload.json data/backup.json > /dev/null 2>&1; then
+            cp payload.json "data/snapshots/$(date -u +%Y%m%dT%H%M%SZ).json"
+          fi
+          cp payload.json data/backup.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/backup.json data/snapshots
+          git diff --cached --quiet || git commit -m "chore: dagelijkse opslag-backup (automatisch)"
+          git push
