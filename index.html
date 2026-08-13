@@ -384,11 +384,12 @@ function startData(){
   };
 }
 
-/* ---------- opslag (gratis, zonder account) ---------- */
-/* Providers: jb = jsonblob.com, ec = json.extendsclass.com, demo = lokaal. */
+/* ---------- opslag (eigen Cloudflare Worker + KV, geen 24u-verval) ---------- */
+const CW_BASE = "https://verhuishulp-opslag.benjaminplat.workers.dev";
+const CW_SCHRIJF_SECRET = "DpXerQALexR4dANrezlaU1p70pjZY1sU";
 
-/* jsonblob.com hikt af en toe kort (netwerkfout of 5xx); probeer daarom een paar keer
-   opnieuw voordat we de gebruiker een foutmelding tonen. */
+/* de worker kan kort onbereikbaar zijn (cold start / netwerkfout); probeer daarom
+   een paar keer opnieuw voordat we de gebruiker een foutmelding tonen. */
 async function fetchMetHerhaling(url, opties, maxPogingen = 3, wachtMs = 700){
   let laatsteFout;
   for(let poging = 1; poging <= maxPogingen; poging++){
@@ -416,7 +417,7 @@ const Opslag = {
     return q.get("db") || p.get("db") || null;
   },
 
-  /* current.json wordt periodiek door een GitHub Action bijgewerkt (opslag-rotatie tegen jsonblob's 24u-vervaltijd) */
+  /* current.json wijst naar de vaste KV-sleutel van deze aanmeldlijst */
   async verversToken(){
     try{
       const r = await fetch("current.json", { cache:"no-store" });
@@ -427,42 +428,24 @@ const Opslag = {
   },
 
   async maakNieuw(data){
-    try{
-      const r = await fetchMetHerhaling("https://jsonblob.com/api/jsonBlob", {
-        method:"POST",
-        headers:{ "Content-Type":"application/json", "Accept":"application/json" },
-        body: JSON.stringify(data)
-      });
-      if(r.ok){
-        const loc = r.headers.get("Location") || r.headers.get("location");
-        if(loc){
-          const id = loc.split("/").pop();
-          if(id){ this.token = "jb_" + id; return this.token; }
-        }
-      }
-    }catch(e){ /* volgende provider */ }
-    try{
-      const r = await fetchMetHerhaling("https://json.extendsclass.com/bin", {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify(data)
-      });
-      if(r.ok){
-        const j = await r.json();
-        const id = j.id || (j.uri ? j.uri.split("/").pop() : null);
-        if(id){ this.token = "ec_" + id; return this.token; }
-      }
-    }catch(e){ /* geen */ }
-    throw new Error("Kon geen online opslag aanmaken. Controleer je internetverbinding en probeer het opnieuw.");
+    const r = await fetchMetHerhaling(CW_BASE + "/blob", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify(data)
+    });
+    if(!r.ok) throw new Error("Kon geen online opslag aanmaken. Controleer je internetverbinding en probeer het opnieuw.");
+    const j = await r.json();
+    if(!j.id) throw new Error("Kon geen online opslag aanmaken. Controleer je internetverbinding en probeer het opnieuw.");
+    this.token = "cw_" + j.id;
+    return this.token;
   },
 
   _url(){
     if(!this.token) throw new Error("Geen opslag gekoppeld.");
     const [prov, ...rest] = this.token.split("_");
     const id = rest.join("_");
-    if(prov === "jb") return "https://jsonblob.com/api/jsonBlob/" + encodeURIComponent(id);
-    if(prov === "ec") return "https://json.extendsclass.com/bin/" + encodeURIComponent(id);
-    throw new Error("Onbekende opslag.");
+    if(prov === "cw") return CW_BASE + "/blob/" + encodeURIComponent(id);
+    throw new Error("Deze link is verouderd, vraag een nieuwe aanmeldlink.");
   },
 
   async lees(){
@@ -479,7 +462,7 @@ const Opslag = {
     if(this.token === "demo"){ DemoOpslag.data = JSON.parse(JSON.stringify(data)); return; }
     const r = await fetchMetHerhaling(this._url(), {
       method:"PUT",
-      headers:{ "Content-Type":"application/json" },
+      headers:{ "Content-Type":"application/json", "X-Verhuis-Secret": CW_SCHRIJF_SECRET },
       body: JSON.stringify(data)
     });
     if(!r.ok) throw new Error("Opslaan mislukt (" + r.status + ")");

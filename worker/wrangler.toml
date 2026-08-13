@@ -1,0 +1,7 @@
+name = "verhuishulp-opslag"
+main = "src/index.js"
+compatibility_date = "2026-08-12"
+
+kv_namespaces = [
+  { binding = "VERHUISHULP_KV", id = "3a2442be83da4fa3b69b0853e77ae0ee" }
+]
